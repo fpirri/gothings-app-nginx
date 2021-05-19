@@ -3,6 +3,6 @@
   "package": "nginx",
   "status": "todo",
   "filetargz": "dockrepo/dockimages/nginx/nginxdirs.tar.gz",
-  "githubgzfile": "https://github.com/fpirri/gothings-cloud-apps/raw/master/nginx/dockrepo/dockimages/nginx/nginxdirs.tar.gz",
+  "githubgzfile": "https://github.com/fpirri/gothings-app-nginx/raw/master/nginxdirs.tar.gz",
   "script": "none"
 }

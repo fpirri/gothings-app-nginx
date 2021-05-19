@@ -2,5 +2,5 @@
   "type": "cloud",
   "package": "nginx",
     "status": "done",
-   "script": "dockrepo/sysdata/base/baseconfig/baseinit.sh"
+   "script": "~/dockrepo/sysdata/nginx/init-nginx.sh"
 }
