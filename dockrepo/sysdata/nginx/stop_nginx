@@ -1,0 +1,21 @@
+#!/bin/bash
+#                                                                    2020-02-10
+#  STOP nginx  (in droplet gothings-vo9-db)
+#
+SERVICENAME="nginx"
+HOME="/home/yesfi/"
+WORKDIR=${HOME}"dockrepo/sysdata/nginx/"
+#
+echo
+echo
+echo "---------------------------------------------------------"
+echo "Use docker-compose to STOP the app ${SERVICENAME}"
+echo
+echo "Starting docker-compose ..."
+cd ${WORKDIR}
+docker-compose -f "${SERVICENAME}.yml" stop
+echo
+echo "Running containers now are:"
+~/showdock
+echo
+echo "Done."

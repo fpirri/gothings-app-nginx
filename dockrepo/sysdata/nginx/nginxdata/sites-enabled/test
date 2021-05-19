@@ -1,0 +1,125 @@
+##                                                                                         2021-03-26
+#
+# Versione: Generic nginx                                          DA AGGIUSTARE
+#
+#
+#
+# Versione client: accesso ai servizi della scheda                                          v0.02.00  ??
+#   - sezione ripresa dal vecchio wpm sulla droplet pirri v01.03
+#
+# Obiettivi da raggiungere:
+#  - semplificare lo sviluppo dei microservices locali
+#      <-- un file per ogni sito o gruppo omogeneo di siti
+#  - mixing local & public access
+#      <-- separazione tra accesso https e servizi locali in http
+#  - uniformare debug
+#      <-- adesso nel servizio 'user' in cloudlog
+#  - redirect http-->https per i siti pirri
+#      <-- sezione unica per tutti i siti *.pirri.org
+#
+################################################################################
+#
+#  DOC in .../WP-Sviluppi/pirri/README.pirri.cloud
+#      cerca:   *** PHP Service - v0.00.3 ***
+#           ---  Revisione NGINX sites
+#
+#  per vedere la storia precedente: 
+#         .../cloud-dev/dockrepo/sysdata/nginxdata/sites-enabled/services
+#      cerca:    *** WPMulti v0.01.04 ***
+#                wordpress secure install  |
+#
+################################################################################
+#
+#  TEST
+#
+#  - semplice test per verificare il funzionamento base di nginx
+#
+################################################################################
+#
+################################################################################
+server {###  server per un test di base - prot http ############################
+  listen 80;
+  server_name test.pirri.me;#  sito specifico per un test veloce di funzionalita'
+
+	access_log /dev/stdout gothings_services;
+  set $debug_value '|nginx: TEST http|';
+  root /var/www/test/;#----------------- root base per il test
+  default_type 'text/html';
+
+  location / {
+    index index.html
+    try_files index.html =469;
+  }
+
+  location /.well-known/acme-challenge/ {
+      root /var/www/certbot;
+  }
+
+  location = /lua { 
+    set $debug_value '|nginx: TEST lua|';
+    content_by_lua_file /var/www/lua/test.lua;
+    server_tokens off;
+  }
+
+  location = /favicon.ico { 
+    set $debug_value '|nginx: TEST favicon|';
+    log_not_found off; access_log off; 
+  }
+
+  location = /robots.txt { 
+    set $debug_value '|nginx: TEST robots|';
+    log_not_found off; access_log off; allow all; 
+  }
+
+  #### CUSTOM ERROR pages ------------------ ERROR locations
+  #  locazione errori in test home
+  #
+  error_page 469 /custom_469.html;
+  error_page 459 /custom_459.html;
+  error_page 404 /custom_404.html;
+  location = /custom_404.html {
+    internal;
+    set $debug_value '|nginx: test error 404|';
+    index custom_404.html;
+  }
+  location = /custom_469.html {
+    internal;
+    set $debug_value '|nginx: test error 469|';
+    index custom_469.html;
+  }
+  location = /custom_459.html {
+    internal;
+    set $debug_value '|nginx: test error 459|';
+    try_files custom_459.html =459;
+  }
+}
+#
+################################################################################
+server {###  server per test https #############################################
+  listen 443 ssl;
+  server_name test.pirri.me;
+  server_tokens off;
+
+	access_log /dev/stdout gothings_services;
+  set $debug_value '|nginx: TEST https|';
+  root /var/www/test/;#----------------- root base per il test
+  default_type 'text/html';
+
+  ssl_certificate /etc/letsencrypt/live/pirri.me/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/pirri.me/privkey.pem;
+  include /etc/letsencrypt/options-ssl-nginx.conf;
+  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+  location / {
+    index index.html
+    try_files index.html =469;
+  }
+
+  location = /lua { 
+    set $debug_value '|nginx: TEST lua|';
+    content_by_lua_file /var/www/lua/test.lua;
+    server_tokens off;
+  }
+}
+#
+################################################################################

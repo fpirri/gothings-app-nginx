@@ -1,0 +1,90 @@
+#                                                                               2021-03-30
+#
+#  NGINX service definition nella droplet gothings-vo9-db
+#
+#  =============================================================================
+#
+#  Inizialmente copiato da .../gothings/base/dockrepo/sysdata/base/gothingsbase.yml
+#    <-- poi adattato alla nuova droplet
+#
+##############
+#  nginx     nginx proxy + certbot                               version 0.01.09
+#
+#            container implements a gateway from network to internal applications
+#            it is a reverse proxy http server
+#            it is differs only marginally from Fase 0 & 1
+#            base image: gothings/nginx:arm-002
+#            nginx version: openresty:1.15.8.2-6-buster
+#    
+###############
+
+version: '3'
+
+networks:
+  gothingsnet:
+    external: true
+    # ipv4_addresses:
+    #   172.29.196.180 : nginx
+    #   172.29.196.181 : redis
+    #   172.29.196.182 : logspout
+    #   172.29.196.183 : nodesyslog
+    #   172.29.196.184 : 
+    #   172.29.196.185 : testvue
+    #   172.29.196.186 : base
+    # 
+  servicenet:
+    external: true
+    # ipv4_addresses:
+    #   172.29.195.180 : nginx
+    #   172.29.195.181 : redis
+    #   172.29.195.182 : logspout
+    #   172.29.195.183 : nodesyslog
+    #   172.29.195.184 : mongo
+    #   172.29.195.185 : testvue
+    #   172.29.195.185 : base
+    #   172.29.195.2   : nodesimple ??  autoassegnato da compose
+    #
+    ############
+    #
+    # NOTA:
+    #        net host : vpn
+    #
+
+services:
+  nginx:
+    image: openresty/openresty:1.15.8.2-6-buster
+    container_name: nginx
+    restart: unless-stopped
+    volumes:
+      ###### parte certbot
+      #   configurazione nginx
+      - ~/dockrepo/sysdata/nginx/data/certbot/conf:/etc/letsencrypt
+      #   site home per certbot
+      - ~/dockrepo/sysdata/nginx/data/certbot/www:/var/www/certbot
+      ###### configurazione proxy
+      - ~/dockrepo/sysdata/nginx/nginxdata/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+      - ~/dockrepo/sysdata/nginx/nginxdata/conf.d:/usr/local/openresty/nginx/conf/conf.d/
+      - ~/dockrepo/sysdata/nginx/nginxdata/sites-enabled:/usr/local/openresty/nginx/conf/sites-enabled/
+      ###### contenuto siti
+      #   sito di test
+      - ~/dockrepo/sysdata/nginx/htdocs/test:/var/www/test
+      #   locazione ausiliaria per nginx lua
+      - ~/dockrepo/sysdata/nginx/htdocs/lua:/var/www/lua
+    networks: 
+      gothingsnet:  
+        ipv4_address: 172.29.196.180
+      servicenet:  
+        ipv4_address: 172.29.195.180
+    ports:
+      - "80:80"
+      - "443:443"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    restart: unless-stopped
+    volumes:
+      - ~/dockrepo/sysdata/nginx/data/certbot/conf:/etc/letsencrypt
+      - ~/dockrepo/sysdata/nginx/data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"

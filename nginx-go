@@ -1,0 +1,1155 @@
+#!/bin/bash
+#                                                                     2021-03-29
+#  Menu script to manage nginx app
+                                                              Version="0.01.16"
+                                                             ThisHost=(hostname)
+###
+#  versione in sviluppo:
+#    - tentativo di generalizzazzione per includere nuovi siti ...
+#    - gestione automatica di certbot e di aggiunta dei siti
+#      <-- versione semi-manuale
+#
+##########
+#
+#  *** Primo tentativo di controllo per multi-droplet dal PC ***
+#
+#  Menu per la gestione di TUTTO il sistema gothings da un menu' principale su PC
+#
+#  - download:                                                                       NON DISPONIBILE
+#      ??wget -O gocloud https://github.com/fpirri/gothings-cloud/blob/master/gothings??
+#
+################################################################################
+#
+# get script name:
+ThisScript="$(basename "$0")"
+#
+################################################################################
+#
+# ----------------------------------
+# Mode: DEBUG
+DebugMode=0                     # 0 == NO debug     > 0 == Show debug info
+#
+# ----------------------------------
+# Define app
+AppName="nginx"
+AppDisplayName="Nginx Proxy"
+AppType="cloud"
+#
+# ----------------------------------
+# Define display
+MenuName="NGINX Proxy"
+MenuTag="${MenuName} v${Version}"
+#
+# ----------------------------------
+# variabili globali interne
+UserName=yesfi
+Home="/home/${UserName}/"
+Dockrepo="${Home}dockrepo/"
+AppDir="${Dockrepo}sysdata/${AppName}/"
+WorkDir=${Home}
+ScriptName="none"
+# -------------------------------------------------------  DA RIVEDERE alla fine
+# costanti varie
+USERNAME=${UserName}                                       # utente sulla droplet
+HOMEDIR=${Home}                                            # dir di lavoro per questo script
+#
+INSTALLDIR="${HOMEDIR}dockrepo/dockimages/${AppName}/"     # dir dei file di configurazione nella droplet
+GITHUBHOME="https://raw.githubusercontent.com/fpirri/"     # prefisso per i progetti fpirri su github
+#
+# ------------------------------------------------------------------------------
+
+#
+MenuTrap=0                                 # segnalatore errore irreparabile
+RetValue=3                                 # 3--> OK     5--> KO
+# ----------------------------------
+# costanti varie
+Red='\033[0;41;30m'
+Std='\033[0;0;39m'
+#
+#
+##########################################################################
+#  Funzioni utili
+##########################################################################
+avanti(){
+# Domanda di continuazione personalizzabile
+# call:    avanti \$1
+#   \$1:   <stringa di domanda>
+  echo "----------------------------------------------------------------"
+  read -rsp "$1" -n 1 key
+  echo
+}
+#
+pause() {
+#  Domanda 'continue or exit'
+  avanti 'Press any key to continue or ^C to exit ...'
+}
+#
+##########################################################################
+dots(){
+# wait $1 seconds, printing dots on the screen
+#   $1 :  # of seconds to wait
+  local param1
+  printf -v param1 '%d\n' $1 2>/dev/null # converti in intero con tutti i controlli
+  while [ $param1 -gt 0 ]
+  do
+    echo -n "."
+    sleep 0.5
+    echo -n "."
+    sleep 0.5
+    let "--param1"
+  done
+}
+#
+##########################################################################
+dots_nl(){ #  Dots 'new line'
+# wait $1 seconds, printing dots on the screen
+#
+# add a newline at the end
+#
+  dots $1
+  echo
+}
+#
+##########################################################################
+toupdate(){
+  #  segnala funzione IN CORSO DI MODIFICA
+  echo 
+  echo
+  echo "------------------------------------------------------------ ???:"
+  echo
+  echo "This function is WORK IN PROGRESS"
+  echo "A new definition & rewriting is on course"
+  echo
+  #exit
+  pause "?"
+}
+#
+##########################################################################
+terminal(){
+  # Apri un terminale in questa droplet
+  echo
+  echo "----------------------------------------------------------------"
+  echo "Open a terminal on this droplet"
+  echo "                                      <-- Type 'exit' to go back"
+  echo
+  bash
+  echo
+  echo " going back ..."
+  dots 2
+}
+#
+##########################################################################
+# SHOW submenu header
+#
+# call:    showsubtitle $1
+#    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+# $1:"         Sub menu title"
+#
+showsubtitle(){
+  clear
+  echo 
+  echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+  echo "$1"
+  echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+}
+#
+##########################################################################
+stopmenu(){
+#  $1 :  nome del file non trovato
+#  $2 :  avviso all'utente, come '... il file xxx e' essenziale ...'
+  echo 
+  echo "------------------------------------------------------"
+  echo -e "${Red} ERROR on file: $1 - debug message: ${Std}"
+  echo -e "$2"
+  echo "------------------------------------------------------"
+  echo 
+  MENUTRAP=66
+  RETLEVEL=66
+  return 66
+}
+#
+##########################################################################                          ** IN SOSTITUZIONE **
+json2string() {
+  # Trasforma valori json da stringa in stringa nulla
+  #   $1    nome variabile da verificare
+  typeset -n ref1=$1 #                    ref1 punta alla variabile json
+  case "$ref1" in #                       check valori anomali --> stringa ""
+    null|true|false)
+      ref1=""
+      echo "null value"
+      return 0
+      ;;
+    *)
+      echo "value: $ref1"
+      return 1
+  esac
+}
+#
+##########################################################################
+consoleexit() {
+  #  Return to shell
+  echo
+  echo
+  echo "---------------------------------------------------------"
+  echo "Thank you for using   N G I N X   APP MENU"
+  echo
+  MENUTRAP=0
+  exit 0
+}
+#
+##########################################################################
+showcontainers(){
+# 1. SHOW containers status
+#               "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+#  showsubtitle "         sottotitolo piu' o meno centrato"
+#
+  local max count
+  max=10
+  count=15 # deve essere: count > max
+  while true; do
+    count=$((count+1))
+    if [[ count -ge max ]]; then
+      clear
+      count=0
+      showsubtitle "      SHOW all containers"
+      echo -en "\033[6;0H"
+    fi
+    docker ps -a --format "table {{.Names}}\\t{{.Image}}\\t{{.Status}}"
+    echo "----------------------------------------------------------------- ${count}   "
+    echo -n "                             Press any key to return at main menu                   "
+    echo -n "                                                                                    "
+    echo -en "\033[6;0H"
+    read -t 3 -N 1 input
+    if [ $? == 0 ]; then
+      echo -en "\033[20;0H"
+      echo "Back to main menu"
+      break 
+    fi
+  done
+}
+#
+##########################################################################
+bugmessage(){
+# stampa di un avviso di errore, se DebugMode -gt 0
+#
+#  $1 :  ERROR oppure WARNING oppure NOTE
+#  $2 :  codice di errore
+#  stampa piccola storia  <-- vecchio debuglog !!!
+#  $3 :  avviso all'utente, come '... il file xxx e' essenziale ...'
+#
+  if [ ${DebugMode} -gt 0 ]; then
+    echo 
+    echo "------------------------------------------------------"
+    echo -e "${Red} $1 $2 - debug message: ${Std}"
+    echo -e "$3"
+    echo "------------------------------------------------------"
+    echo 
+  fi
+}
+#
+##########################################################################
+
+#
+##########################################################################
+getgitfile(){    # Lettura file da github
+# Verify file existence, get it from github if not
+#    eventually, make it executable  (input var $4=="EXEC")
+#
+#  use globals:
+#    DEBUGLOG=""     # utile nel debug                               <-- ELIMINARE
+#    ITEXISTS=0      #  1 : file esiste    0 : file assente          <-- risultato
+#
+#  Esempio di identificazione del file:
+#  per il file:
+#    https://github.com/fpirri/gothings-cloud-apps/blob/master/dockrepo/dockimages/<Appname>/<AppName>config.json
+#  abbiamo le variabili di ingresso:
+#   $1 :  FileExpand=<AppName>config.json                       "nomefile"   
+#   $2 :  GithubPath="gothings-cloud-apps/master/${AppName}/"    "github project branch"
+#   $3 :  LocalInstallDir="dockrepo/dockimages/${AppName}/"      "droplet path after $HOMEDIR"
+#   $4 :  optional input variable, make file executable if value is "EXEC"
+#
+#        --> attenti alle barre inizio-fine--> $1: no-no ;  $2: no-si ;  $3: no-si
+#
+#     <-- se esiste il file $1 ed ha lunghezza > 0 :
+#         <-- si va avanti senza altre azioni
+#     <-- altrimenti si prova a scaricare il file da github               AGGIUSTARE dopo ......
+#     <-- si riprova il test di lunghezza
+#         se non funziona si torna con ITEXISTS=0
+#     
+local Filegit GithubFile
+echo "Sono getgitfile - DebugMode: ${DebugMode}"
+  Filegit="${HOMEDIR}$3$1"
+  if [ ${DebugMode} -gt 0 ]; then
+    echo "Input vars:"
+    echo "  \$1 \(nomefile\) : $1"
+    echo "  \$2 \(github project branch\) : $2"    #<-- togliere la 'location'==="https://github.com/fpirri/"
+    echo "  \$3 \(path after \$HOMEDIR\) : $3"     #<-- path===github path 
+    echo "  \$4 \(optional input variable\) : $4"  #<-- make file executable if value is "EXEC"
+    echo "  HOMEDIR \(home\) : ${HOMEDIR}"
+  fi
+  echo "il file cercato e': ${Filegit}"
+  if [[ -s "${Filegit}" ]]; then
+    ITEXISTS=1    # file exists and length > 0
+    echo "il file: ${Filegit} esiste gia'"
+  else            # si prova a scaricarlo
+    #
+    #GITHUBHOME="https://raw.githubusercontent.com/fpirri/"     # prefisso per i progetti fpirri su github
+    GithubFile="${GITHUBHOME}$2$3$1"
+    echo " da github: ${GithubFile}"
+    echo "Cerco di scaricare il file:"
+    echo "${Filegit}"
+    wget -O "${Filegit}" "${GithubFile}"
+    if [[ -s "${Filegit}" ]]; then
+      ITEXISTS=1    # file exists and length > 0
+      if [ "$4" == "EXEC" ]; then      # option: make it executable
+        chmod +x "$Filegit"
+      fi
+    else
+      ITEXISTS=0    # file non esistente
+      echo "Il file ${Filegit} e' introvabile !"
+    fi
+  fi
+  return $ITEXISTS
+}
+#
+################################################################################
+#
+################################################################################
+verifyexpand() {
+#### versione per NGINX - ripreso da gocloud-db
+####                                       generalizzazione IN CORSO di verifica
+#
+#  si verifica <appname>expand.json per vedere se l'espansione e' da fare,
+#  ovvero se e' gia' fatta o non e' comunque necessaria:
+#
+#  ritorna 0 se l'operazione non ha prodotto errori
+#          1 se ci sono stati errori ...
+#
+#  error details in:  .../github-gothings/README.github.gothings
+#
+#  il dir .../dockimages/<appname> DEVE contenere il file di configurazione <appname>expand.json
+#  nello stesso dir sono eventualmente presenti i files <appname>expand.sh e <appname>dirs.tar.gz
+#  TUTTE le info necessarie sono nel .json
+#
+  local filejson status filetargz githubgzfile script temp debuglog nvar
+  local type, package, status, filetargz, githubgzfile, script
+  filejson="${HOMEDIR}dockrepo/dockimages/${AppName}/${AppName}expand.json"
+  ScriptName="none"
+  #
+  echo "    <-- verify expand"
+  echo "    <-- configuration data read from ${filejson}"
+  temp=($(cat "${filejson}" | jq -r '.type,.package,.status,.filetargz,.githubgzfile,.script'))
+  # verifica che se ci sono null!!
+  echo "    <--         type: ${temp[0]}"
+  echo "    <--      package: ${temp[1]}"
+  echo "    <--       status: ${temp[2]}"
+  echo "    <--   filetar.gz: ${temp[3]}"
+  echo "    <-- githubgzfile: ${temp[4]}"
+  echo "    <--       script: ${temp[5]}"
+  # aggiusta le variabili, se necessario
+  nvar=0
+  type=${temp[0]}
+  json2string type
+  (( nvar += $? ))
+  package=${temp[1]}
+  json2string package
+  (( nvar += $? ))
+  status=${temp[2]}
+  json2string status
+  (( nvar += $? ))
+  filetargz=${temp[3]}
+  json2string filetargz
+  (( nvar += $? ))
+  githubgzfile=${temp[4]}
+  json2string githubgzfile
+  (( nvar += $? ))
+  script=${temp[5]}
+  json2string script
+  (( nvar += $? ))
+  if [[ "${nvar}" -ne 6 ]]; then
+    bugmessage ERROR 1 "    JSON invalid number of values"
+    return 1 #                                                                 ERROR 1: Invalid JSON
+  fi
+  echo "    <-- non-null variables: ${nvar}"
+  # verifica stringhe nulle
+  temp=$((${#temp} * ${#type} * ${#package} * ${#status} * ${#filetargz} * ${#githubgzfile}))
+  if [[ "${temp}" -eq 0 ]]; then
+    bugmessage ERROR 2 "    JSON file ${filejson} returned empty string"
+    return 2 #                                                                 ERROR 2: Invalid JSON
+  fi
+  # valori apparentemente accettabili, andiamo avanti
+  # verifica type & package
+  if [ "${type}" != "${AppType}" ]; then
+    bugmessage ERROR 13 "    JSON expand file returned invalid type - should be: ${AppType}"
+    return 13 #                                                                 ERROR 13: Invalid JSON
+  fi
+  if [ "${package}" != "${AppName}" ]; then
+    bugmessage ERROR 14 "    JSON expand file returned invalid package - should be: ${AppName}"
+    return 13 #                                                                 ERROR 14: Invalid JSON
+  fi
+  echo "    <-- variable types OK"
+  filetargz="${HOMEDIR}${filetargz}"
+  echo "    <-- sysdata for ${AppDisplayName} environment read from ${filetargz}"
+  case "${status}" in
+    todo) #                                      expand archive .tar.gz
+      echo "    <--  expand to be done"
+      if [[ -s "${filetargz}" ]]; then # file exists and length > 0
+        :
+      else #                             il file non esiste, proviamo a scaricarlo
+        wget -O "${filetargz}" "${githubgzfile}"
+        if [[ -s "${filetargz}" ]]; then
+          echo "    <--  archive file exists"
+        else
+          bugmessage ERROR 66 "    file not found"
+          return 66
+        fi
+      fi
+      echo "    <--  expand archive file"
+      sudo tar xpf "${filetargz}" -C "$HOMEDIR" #   si espande l'archivio
+      temp=$?
+      if [[ ! $temp -eq 0 ]]; then
+        bugmessage ERROR 66 "    archive expansion failed"
+        return 66
+      fi
+      # espansione effettuata:  aggiorna il .json
+      echo
+      echo "    <-- expand OK, change .json status from 'todo' to 'done'"
+      echo "$(cat "${filejson}" | jq -r '.status |= "done"')" > "${filejson}.new"
+      temp=$?
+      echo "    <-- save existing file into 'old'"
+      cp -r "${filejson}"  "${filejson}.old"
+      echo "    <-- copy 'new' file onto ${AppName}expand.json"
+      cp -r "${filejson}.new"  "${filejson}"
+      echo -n "    <-- verify ${AppName}expand.json status :"
+      temp=($(cat ${filejson} | jq -r '.status'))
+      echo ${temp}
+      if [ "${temp}" != "done" ]; then
+        bugmessage WARNING 5 "    ERROR : can't update ${filejson} file"  # 
+        return 5
+      fi
+      echo "    <-- .json status update OK"
+      echo "    ------------------------------"
+      ;;
+    done)
+      echo "    <-- expand not needed"
+      ;;
+    *)
+      bugmessage ERROR 3 "    WARNING 3 - JSON status value is invalid"
+      return 3  #                                                               ERROR 3: JSON status value is invalid
+      ;;
+  esac
+  ScriptName=${script}
+  return 0
+  echo "1- questo non verra' MAI stampato!"
+}
+#
+################################################################################
+verifyconfig() {
+#
+#### versione SPERIMENTALE: inizializza certbot & nginx
+#
+#  si verifica <appname>config.json per vedere se l'espansione e' da fare,
+#  ovvero se e' gia' fatta o non e' comunque necessaria:
+#
+#  ritorna 0 se l'operazione non ha prodotto errori
+#          1 se ci sono stati errori ...
+#
+#  error details in:  .../github-gothings/README.github.gothings
+#
+#  Vedi i commenti sulla fase expand per la struttura del repositori
+#  ed altre info
+#
+#  si rendono raggiungibili le app con HTTPS
+#    <-- ogni app lavora internamente in HTTP (senza encription)
+#        ed e'nginx che se ne occupa in tutte le comunicazioni dell'host
+#        con l'esterno 
+#
+#  il .json mantiene lo status dell'installazione ( todo / done )
+#
+  local filejson type package status script xscript temp debuglog nvar
+  filejson="${HomeDir}dockrepo/dockimages/${AppName}/${AppName}config.json"
+  ScriptName="none"
+  #
+  if [ ${DebugMode} -gt 0 ]; then
+    echo "sono la funzione verifyconfig in debug mode"
+    echo "    <-- configuration data read from ${filejson}"
+  fi
+  temp=($(cat "${filejson}" | jq -r '.type,.package,.status,.script'))
+  # verifica che non ci siano null!!
+  if [ ${DebugMode} -gt 0 ]; then
+    echo "    <--         type: ${temp[0]}"
+    echo "    <--      package: ${temp[1]}"
+    echo "    <--       status: ${temp[2]}"
+    echo "    <--       script: ${temp[3]}"
+  fi
+  # aggiusta le variabili, se necessario
+  nvar=0
+  type=${temp[0]}
+  json2string type
+  (( nvar += $? ))
+  package=${temp[1]}
+  json2string package
+  (( nvar += $? ))
+  status=${temp[2]}
+  json2string status
+  (( nvar += $? ))
+  script=${temp[3]}
+  json2string script
+  (( nvar += $? ))
+  if [[ "${nvar}" -ne 4 ]]; then
+    bugmessage ERROR 1 "    JSON invalid number of values"
+    return 1 #                                                                 ERROR 1: Invalid JSON # of values
+  fi
+  bugprint "    <-- non-null variables: ${nvar}"
+  # verifica stringhe nulle
+  temp=$((${#temp} * ${#type} * ${#package} * ${#status}))
+  if [[ "${temp}" -eq 0 ]]; then
+    bugmessage ERROR 2 "    JSON file ${filejson} returned empty string"
+    return 2 #                                                                 ERROR 2: Invalid JSON: empty string
+  fi
+  # valori apparentemente accettabili, andiamo avanti
+  # verifica type & package
+  if [ "${type}" != "${AppType}" ]; then
+    bugmessage ERROR 13 "    JSON expand file returned invalid type - should be: ${AppType}"
+    return 13 #                                                                 ERROR 13: Invalid JSON: AppType
+  fi
+  if [ "${package}" != "${AppName}" ]; then
+    bugmessage ERROR 14 "    JSON config file returned invalid package - should be: ${AppName}"
+    return 13 #                                                                 ERROR 14: Invalid JSON: AppName
+  fi
+  echo "    <-- variable types OK"
+  # verifica la variabile status
+  echo "    <-- read status from json file ${filejson}"
+  echo "status: ${status}"
+
+################################################################################  PARTE IN COSTRUZIONE
+  xscript="${HOMEDIR}${script}"
+  debuglog="|| verify install |"
+  case "${status}" in
+    todo) #                                                                       install cloud to do
+#     xscript:   ${AppDir}script
+#     echo "xscript: ${xscript}"
+      bugprint "   <-- verifyconfig:   'todo'"
+      if [ "${script}" != "none" ]; then
+        xscript="${AppDir}${script}"
+        if [[ -s "${xscript}" ]]; then # file exists and length > 0
+          debuglog="${debuglog}| ${xscript} esiste |"
+        else
+          debuglog="${debuglog}| install script ${xscript} not found |"
+          bugmessage ERROR 66 "    file not found"
+          return 66 #                                                 il file non esiste  -->  ERRORE 4
+        fi
+        ########################################## do script !!! :
+        #
+        ###########
+        ##### copia sites-enabled !                                        DA FARE
+        ##########
+        #echo "    <-- exec ${xscript} ..."
+        #${xscript} # esegui lo script di install
+        #RetValue=$?
+
+        echo "Qui si seseguirebbe lo script ${xscript}"
+        echo " in realta' non si fa NIENTE."
+        echo
+        pause
+
+        RetValue=6      ### simula un errore
+        echo "------"
+
+        ##########################################
+
+
+        echo "    <-- ${script} return code: ${RetValue}"
+        if [ "${RetValue}" -gt 0 ]; then # errore nello script                  DA RIVEDERE
+          if [ "${RetValue}" -eq "666" ]; then # set codice errore
+            ERRCODE=82
+          else
+            ERRCODE=81
+          fi
+          debuglog="|${debuglog}| init script return value: ${RetValue} |"
+          bugmessage ERROR ${ERRCODE}"    init script execution error"
+          return ${ERRCODE}
+        else
+          # install done : update .json file
+          echo
+          echo "    <-- update .json status from 'todo' to 'done'"
+          echo "$(cat "${filejson}" | jq -r '.status |= "done"')" > "${filejson}.new"
+          temp=$?
+          echo "    <-- save existing file into 'old'"
+          cp -r "${filejson}"  "${filejson}.old"
+          echo "    <-- copy 'new' file onto cloudinstall.json"
+          cp -r "${filejson}.new"  "${filejson}"
+          echo -n "    <-- verify cloudinstall.json status : "
+          temp=($(cat ${filejson} | jq -r '.status'))
+          echo ${temp}
+          if [ "${temp}" != "done" ]; then
+            bugmessage ERROR 5 "    ERROR : can't update ${filejson} file"
+            return 5 #                                         update JSON file failed!  -->  ERRORE 5
+          fi
+        fi
+      fi
+      echo "    <-- .json status update OK"
+      echo "    ------------------------------"
+      ;;
+    done)
+      bugprint "   <-- verifyconfig:   'done'"
+      echo "    OK - config not required"
+      return 0
+      ;;
+    *)
+      bugprint "   <-- verifyconfig:   'status value is invalid'"
+      bugmessage ERROR 3 "    ERROR 3 - JSON status value is invalid"
+      return 3
+      ;; #                                                                     ERROR 3: Invalid JSON
+  esac
+  echo "    VerifyConfig OK"
+  return 0
+}
+#
+################################################################################
+verifyinit() {
+#
+#### versione iniziale : NON FA NIENTE !!!
+#
+#  si verifica <appname>config.json per vedere se l'espansione e' da fare,
+#  ovvero se e' gia' fatta o non e' comunque necessaria:
+#
+#  ritorna 0 se l'operazione non ha prodotto errori
+#          1 se ci sono stati errori ...
+#
+#  error details in:  .../github-gothings/README.github.gothings
+#
+#  Vedi i commenti sulla fase expand per la struttura del repositori
+#  ed altre info
+#
+  echo
+  echo "Verifica della configurazione di: ${AppDisplayName}"
+  echo
+  ScriptName="none"
+#
+  echo "Fase init - versione sperimentale"
+  echo -e "${Red} per ora non si fa NIENTE ${Std}"
+  echo
+  dots 3
+#
+  ScriptName=${script}
+  return 0
+}
+#
+##########################################################################
+#  RESTART MENU
+restartmenu() {
+  echo
+  echo
+  echo "---------------------------------------------------------"
+  echo "  STOP-and-GO on this menu"
+  echo
+  echo "This operation will STOP this menu and re-run it"
+  echo "Initial control operation will be performed again."
+  echo "Nothing should happen to your running containers"
+  echo
+  echo "Permanent user data will NOT be destroyed"
+  echo ""
+  read -rsp "Do you like to RESTART  ? [y/N] " -n 1 key
+  case "$key" in
+      [yY]) 
+        echo "restarting:"
+        dots 2
+        exec "./${ThisScript}"
+        ;;
+      *)
+        echo
+        echo "Back to choice"
+        dots 2
+        ;;
+  esac
+}
+#
+##########################################################################
+startapp() {
+#  START APPLICATION
+  echo
+  echo
+  echo "---------------------------------------------------------"
+  echo "Use docker-compose to START ${AppDisplayName} container"
+  echo
+  echo "Starting docker-compose ..."
+  docker-compose -f "${HOMEDIR}dockrepo/sysdata/${AppName}/${AppName}.yml" up -d
+  dots 2
+  echo "Done."
+}
+#
+##########################################################################
+#  STOP APPLICATION
+pauseapp() {
+  echo
+  echo
+  echo "---------------------------------------------------------"
+  echo "Use docker-compose to STOP ${AppDisplayName} container"
+  echo
+  echo "This operation will STOP your ${AppDisplayName} container"
+  echo "You can re-run it with the START operation."
+  echo "Permanent user data will NOT be destroyed"
+  read -rsp "Do you like to STOP ${AppDisplayName} container? [y/N] " -n 1 key
+  case "$key" in
+      [yY]) 
+        echo
+        echo "Using docker-compose to stop ${AppDisplayName} container ..."
+        docker-compose -f "${HOMEDIR}dockrepo/sysdata/${AppName}/${AppName}.yml" stop
+        echo
+        dots 3
+        echo "done."
+        ;;
+      *)
+        echo
+        echo "Back to choice"
+        dots 2
+        ;;
+  esac
+}
+#
+##########################################################################
+destroyapp() {
+#  DESTROY APPLICATION
+  echo
+  echo
+  echo "---------------------------------------------------------"
+  echo "Use docker-compose to STOP & DESTROY ${AppDisplayName} container"
+  echo 
+  echo "------------------ ATTENTION, please,"
+  echo "This operation will STOP & DESTROY your running ${AppDisplayName} container !"
+  echo "Anyway you can re-create and run it with the START operation."
+  echo "Permanent user data will NOT be destroyed"
+  read -rsp "Do you like to STOP & DESTROY? [y/N] " -n 1 key
+  case "$key" in
+      [yY]) 
+        echo
+        echo "Using docker-compose to stop & destroy ${AppDisplayName} container ..."
+        docker-compose -f "${HOMEDIR}dockrepo/sysdata/${AppName}/${AppName}.yml" down
+        echo
+        dots 3
+        echo "done."
+        ;;
+      *)
+        echo
+        echo "Back to choice"
+        dots 2
+        ;;
+  esac
+}
+#
+##########################################################################
+#
+#
+################################################################################
+####################################################     Manage App NGINX    ###
+################################################################################
+#
+#
+echo
+echo "Executing NGINX-GO"
+echo -e "Gestione della app NGINX Proxy - ${Red} versione in sviluppo ${Std}"
+echo
+dots_nl 1
+pause
+#
+# Comunica dove siamo
+cd ${WorkDir}
+echo
+echo -n "Dir di lavoro: "
+pwd
+echo
+echo "La logica di verifica delle condizioni iniziali e' ** ANCORA In sviluppo **"
+echo -e "${Red} Verifica NON EFFETTUATA ! ${Std}"
+dots_nl 3
+#
+
+#
+################################################################################
+################################################     NGINX GO - main logic   ###
+################################################################################
+#
+echo
+echo "Verify directory structure ..."
+# la prima volta non ci sono i dirs, creiamoli !
+if [[ ! -s "${HOMEDIR}dockrepo" ]]; then
+  mkdir dockrepo/
+fi
+if [[ ! -s "${HOMEDIR}dockrepo/dockimages" ]]; then
+  mkdir dockrepo/dockimages
+fi
+if [[ ! -s "${HOMEDIR}dockrepo/dockimages/${AppName}" ]]; then
+  mkdir dockrepo/dockimages/${AppName}
+fi
+if [[ ! -s "${HOMEDIR}dockrepo/sysdata" ]]; then
+  mkdir dockrepo/sysdata
+fi
+if [[ ! -s "${HOMEDIR}dockrepo/sysdata/${AppName}" ]]; then
+  mkdir dockrepo/sysdata/${AppName}
+fi
+#
+MENUTRAP=0 #-------------- per ora non ci sono errori ...
+#
+if [[ ${MENUTRAP} -eq 0 ]]; then
+#
+#################################################################################
+####################################  verify security & configuration environment
+#
+#  ----  verifica security environment:  si producono i file .env-* in sysdata
+#
+#
+  echo -e "    ${Red}  <-- environment phase NOT IMPLEMENTED ${Std}"
+  dots_nl 3
+fi
+#
+MENUTRAP=0 #-------------- per ora non ci sono errori ...
+#
+# CONTINUE to the menu functions
+#
+################################################################################
+##################################################################  phase EXPAND
+if [[ ${MENUTRAP} -eq 0 ]]; then
+  echo
+  echo "    EXPAND phase starts ..."
+  echo
+  echo "############################################  ${AppDisplayName}"
+  echo "     verify json expand config file ..."
+#
+#    <archivio fpirri>/                        github repository
+#      <AppName>                               sezione della app in questione
+#        dockrepo/dockimages/<AppName>/        dir immagine da espandere
+#          <AppName>dirs.tar.gz                archivio files della app
+#          <AppName>expand.json                definizione della fase expand
+#          <AppName>config.json                definizione della fase init
+#          <AppName>init.json                  definizione della fase expand
+#        <appname>-go                          management bash script
+#
+#  - le tre fasi servono per avere flessibilita' nel processo iniziale
+#    di gestione della app:
+#    - expand:
+#      - la fase expand assicura il download dei file della app dall'archivio github
+#      - il download viene eseguito solo la prima volta
+#      - se il file <AppName>dirs.tar.gz non esiste viene comunque ricaricato
+#        ed espanso
+#      - il file <AppName>expand.json segnala se il download deve essere
+#        nuovamente eseguito tramite la variabile status
+#    - config:
+#      - operazioni da eseguire per adattare l'archivio della app
+#    - init:
+#      - operazioni da eseguire per una ripartenza della app
+#
+#  L'operazione expand e' comune a tutte la app
+#
+#  Le fasi config e init dipendono dalle necessita' di ogni app e sono
+#  definite separatamente per ognuna
+#
+#  La parte comune a tutte le app richiama le funzioni verify<config> e
+#  verify<init> che saranno scritte separatamente per ogni app
+#
+##################################
+#
+#  Esempio di file richiamato dall'archivio github
+#
+#   https://github.com/fpirri/gothings-cloud-apps/raw/master/nginx/dockrepo/dockimages/nginx/nginxexpand.json
+#      $1:  nginxexpand.json                              nome del file
+#      $2:  gothings-cloud-apps/raw/master/nginx/         path to app in github
+#      $3:  dockrepo/dockimages/nginx/                    path to file in droplet/github
+#      $4:  <not applicable>
+#
+#
+  DebugMode=1  # START printing vars ...
+#
+  FileExpand="${AppName}expand.json"
+  GithubPath="gothings-cloud-apps/master/${AppName}/"
+  LocalInstallDir="dockrepo/dockimages/${AppName}/"
+#
+# assicurati che il file di configurazione esista
+  getgitfile "${FileExpand}" "${GithubPath}" "${LocalInstallDir}"
+  ITEXISTS=$?
+  if [[ $ITEXISTS -ne 1 ]]; then
+    echo "      <-- configuration expand file DOES NOT exists."
+    stopmenu "${FileExpand}"  "file ${FileExpand} is essential for ${AppName}"
+    exit                       # interrommpere il menu principale
+  fi
+  echo "      <-- exists, verifying content ..." 
+#
+  verifyexpand
+  DebugMode=0  # STOP printing vars ...
+#
+#----  verifica parte expand
+# - si verifica <AppName>install.json per vedere se l'espansione e' da fare
+#    ovvero se e' gia' fatta o non e' comunque necessaria:
+#      status : todo        espansione da fare
+#      status : done        espansione NON necessaria
+#    ritorna:  0  se l'operazione expand non ha prodotto errori
+#             !0  se ci sono stati errori ...
+#
+#  error details in:  .../github-gothings/README.github.gothings
+#
+  RETLEVEL=$?
+  echo "    <-- expand phase returns code ${RETLEVEL}"
+  if [ ${RETLEVEL} -gt 0 ]; then
+    debuglog="Expand phase not good"
+    if [ ${RETLEVEL} -lt 50 ]; then
+      echo
+      bugmessage ERROR "${RETLEVEL}" "    expand phase"
+    else
+      echo
+      bugmessage ERROR "${RETLEVEL}" "    expand phase"
+    fi
+    MENUTRAP=${RETLEVEL}
+    pause
+    exit ${MENUTRAP}
+  fi
+  echo
+  echo "###############################"
+  echo "          EXPAND phase done."
+  echo
+fi
+#
+if [[ ${MENUTRAP} -eq 0 ]]; then
+################################################################################
+##################################################################  phase CONFIG
+  echo
+  echo "-------------------------------"
+  echo "    CONFIG phase starts ..."
+  echo "      verify ${AppName} config file ..."
+#######
+#
+#  Si configura il sito virtuale della app
+#    <-- si copia in 'sites-enabled' il vhost della app:
+#          <AppName>/dockrepo/sysdata/nginx/nginxdata/sites-enabled/<AppName>
+#               e' copiato in:
+#          ~/dockrepo/sysdata/nginx/nginxdata/sites-enabled/
+#
+#  ** altre configurazioni, se necessarie
+#
+#
+#######
+#
+  DebugMode=1  # START printing vars ...
+#
+  FileConf="${AppName}config.json"       #  file di configurazione della fase config
+  # assicurati che il file di configurazione esista
+  #   <-- GithubPath & LocalInstallDir   come per la fase expand
+  getgitfile "${FileConf}" "${GithubPath}" "${LocalInstallDir}"
+  ITEXISTS=$?
+  if [[ $ITEXISTS -ne 1 ]]; then
+    echo "      <-- configuration config file DOES NOT exists."
+    stopmenu "${FileConf}"  "file ${FileConf} is essential for ${AppName}"
+    exit                       # interrompere il menu principale
+  fi
+  echo "      <-- exists, verifying content ..." 
+#
+  verifyconfig
+  MENUTRAP=$?
+#
+  DebugMode=0  # STOP printing vars ...
+#
+#----  parte config verificata  ---
+#
+  echo
+  if [ ${MENUTRAP} -gt 0 ]; then
+    echo -e "    ${Red}  <-- config phase returns code ${MENUTRAP}  ${Std}"
+  else
+    echo -e "    <-- config phase returns code ${MENUTRAP}"
+  fi
+  echo
+  echo "###############################"
+  echo "          CONFIG phase done."
+  echo
+fi
+#
+if [[ ${MENUTRAP} -eq 0 ]]; then
+#################################################################################
+#####################################################################  phase INIT
+  echo
+  echo "-------------------------------"
+  echo "    INIT phase starts ..."
+  echo "      verify ${AppName} init config file ..."
+  #
+  DebugMode=1  # START printing vars ...
+  #
+  FileInit="${AppName}init.json"       #  file di configurazione della fase init
+  # assicurati che il file di configurazione esista
+  #   <-- GithubPath & LocalInstallDir   come per la fase expand
+  getgitfile "${FileInit}" "${GithubPath}" "${LocalInstallDir}"
+  ITEXISTS=$?
+  if [[ $ITEXISTS -ne 1 ]]; then
+    echo "      <-- configuration init file DOES NOT exists."
+    stopmenu "${FileInit}"  "file ${FileInit} is essential for ${AppName}"
+    exit                       # interrompere il menu principale
+  fi
+  echo "      <-- exists, verifying content ..." 
+#
+  verifyinit
+#
+  DebugMode=0  # STOP printing vars ...
+#
+#----  verifica parte init
+# - si verifica <appname>init.json per vedere se ci sono operazioni da fare,
+#    ovvero se sono gia' state fatte o non sono comunque necessarie:
+#
+#  ritorna:  0  se l'operazione init non ha prodotto errori
+#           !0  se ci sono stati errori ...
+#
+#  error details in:  .../github-gothings/README.github.gothings
+#
+  MENUTRAP=$?
+  echo
+  if [ ${MENUTRAP} -gt 0 ]; then
+    echo -e "    ${Red}  <-- expand phase returns code ${MENUTRAP}  ${Std}"
+  else
+    echo -e "    <-- expand phase returns code ${MENUTRAP}"
+  fi
+  echo
+  echo "###############################"
+  echo "          INIT phase done."
+  echo
+fi
+################################################################################
+#######################################################     NGINX-GO  menu   ###
+################################################################################
+##
+#
+#==============================================================================
+echo
+echo "========================================================================="
+echo "        MAIN MENU to manage ${AppDisplayName}"
+echo "========================================================================="
+echo
+#
+sleep 3
+#
+################################################################################
+# function to display menus
+show_menus() {
+  clear
+  echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ${Version}"
+  echo
+  echo "      ${AppDisplayName}   APP  MAIN  MENU"
+  echo
+  echo -n "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ "
+  (hostname)
+  echo
+  echo "1. SHOW       container's status"
+  echo "2. START      ${AppDisplayName} container"
+  echo "3. PAUSE      ${AppDisplayName} container"
+  echo "4. DESTROY    ${AppDisplayName} container"
+  #echo "5. ---        ??"
+  #echo "6. ---        ??"
+  #echo "7. ---        ??"
+  echo "   ..."
+  echo "8. RESTART    This menu"
+  echo "9. TERM       open terminal here"
+  echo "0. EXIT       return to console"
+}
+#
+# read input from the keyboard and take a action
+# invoke the function according to the entered number
+read_options(){
+	local choice
+  read -rsp $'Enter choice [ 1..9 or ^C to exit ] ' -n 1 choice
+  case "$choice" in
+    1) showcontainers;;
+    2) startapp;;
+		3) pauseapp;;
+		4) destroyapp;;
+    5) toupdate;;
+    6) toupdate;;
+    7) toupdate;;
+    8) restartmenu;;
+    9) terminal;;
+    0) consoleexit;;
+    *) echo -e "${Red}Error...${Std}" && sleep 2
+  esac
+}
+ 
+# ----------------------------------------------
+# Step #3: Trap CTRL+C, CTRL+Z and quit singles
+# ----------------------------------------------
+trap '' SIGQUIT SIGTSTP
+#trap '' SIGINT SIGQUIT SIGTSTP
+ 
+# -----------------------------------
+# Step #4: Main logic - infinite loop
+# ------------------------------------
+
+while true
+do
+  # internal trap
+  if [[ ${MenuTrap} -eq 67 ]]
+  then
+    echo "------------------------------------------------------"
+    echo "GOTHINGS CLOUD Control Menu was downloaded from github,"
+    echo "You can re-execute it by typing './g' at the console"
+    echo "------------------------------------------------------"
+    echo
+    break  #-- stop menu
+  fi
+  if [[ ${MenuTrap} -eq 66 ]]
+  then
+    echo 
+    echo "----------------------------------------------------------------"
+    echo " Are you sure that all necessary software was correctly loaded ?"
+    echo
+    echo " Please verify content of all JSON configuration files"
+    echo
+    echo " Please note that a working internet connection is needed to"
+    echo " dinamically update software during the first istallation and"
+    echo " during updates"
+    echo "----------------------------------------------------------------"
+    echo
+    break  #-- stop menu
+  fi
+	show_menus
+	read_options
+done
+echo
+echo "Shell terminated."
+echo
+exit
+#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  FINE
+################################################################################
+
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ HELP allo sviluppo
+sviluppo() {
+#--------------------------------------------- snippet utili durante lo sviluppo
+
+#
+echo -e "${Red} WARNING ${Std} verifica file ${Red} NON ${Std} effettuata!"
+echo
+dots_nl 2
+#
+########
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+echo -e "${Red} STOP di sviluppo !${Std}"
+dots_nl 2
+echo "1   siamo arrivati QUI !"
+exit
+#
+########
+#
+
+#
+########
+if [ $? -eq 0 ]; then
+  echo "Successfully created file"
+  RetValue=3
+else
+  echo "Could not create file" >&2
+  RetValue=5
+fi
+return ${RetValue}
+
+########
+  RetValue=5 #-- simula un errore
+#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+}
+
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+################################################################################
