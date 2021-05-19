@@ -1,4 +1,4 @@
-# Gothings-App-ServiceWP
+# Gothings-App-NGINX
 
 HTTP services for GoThings using nginx & letsencrypt
 <br />  
