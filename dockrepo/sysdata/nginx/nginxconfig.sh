@@ -19,7 +19,7 @@ pause() {
 #
 ##########################################################################
 #
-echo "non faccio niente!"
+echo "Non faccio niente!"
 avanti "any key to exit ..."
 exit
 
