@@ -15,8 +15,7 @@ Project documentation is sparse and not reliable, owing to the on-going (re-)def
 Owing to the above, please be aware it may be next-to-impossible to use this repository to make any useful work.  
 
 Anyway, the original work included may be used according to the permissible MIT License.  
-
-
+ 
 <br />
 
 # DISCLAIMER
