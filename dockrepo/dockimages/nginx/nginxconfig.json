@@ -2,5 +2,5 @@
   "type": "cloud",
   "package": "nginx",
     "status": "todo",
-   "script": "~/dockrepo/sysdata/nginx/nginx-config.sh"
+   "script": "nginxconfig.sh"
 }

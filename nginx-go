@@ -81,7 +81,7 @@ avanti(){
 #
 pause() {
 #  Domanda 'continue or exit'
-  avanti 'Press any key to continue or ^C to exit ...'
+  avanti 'Press any key to continue or ^C to EXIT ...'
 }
 #
 ##########################################################################
@@ -534,12 +534,10 @@ verifyconfig() {
   echo "status: ${status}"
 
 ################################################################################  PARTE IN COSTRUZIONE
-  xscript="${HOMEDIR}${script}"
-  debuglog="|| verify install |"
+  xscript="${AppDir}${script}"
+  debuglog="|| verify config |"
   case "${status}" in
     todo) #                                                                       install cloud to do
-#     xscript:   ${AppDir}script
-#     echo "xscript: ${xscript}"
       bugprint "   <-- verifyconfig:   'todo'"
       if [ "${script}" != "none" ]; then
         xscript="${AppDir}${script}"
@@ -547,28 +545,27 @@ verifyconfig() {
           debuglog="${debuglog}| ${xscript} esiste |"
         else
           debuglog="${debuglog}| install script ${xscript} not found |"
-          bugmessage ERROR 66 "    file not found"
-          return 66 #                                                 il file non esiste  -->  ERRORE 4
+          bugmessage ERROR 4 "    file not found"
+          return 4 #                                                 il file non esiste  -->  ERRORE 4
         fi
         ########################################## do script !!! :
         #
         ###########
         ##### copia sites-enabled !                                        DA FARE
         ##########
-        #echo "    <-- exec ${xscript} ..."
-        #${xscript} # esegui lo script di install
-        #RetValue=$?
+        #
+        echo "    <-- exec ${xscript} ..."
+        ${xscript} # esegui lo script di install
+        RetValue=$?
 
-        echo "Qui si seseguirebbe lo script ${xscript}"
-        echo " in realta' non si fa NIENTE."
+        ########################################## SIAMO IN SVILUPPO!
+
+        echo "Script ${xscript} eseguito"
+        echo "  --> versione sperimentale 2"
         echo
         pause
 
-        RetValue=6      ### simula un errore
-        echo "------"
-
         ##########################################
-
 
         echo "    <-- ${script} return code: ${RetValue}"
         if [ "${RetValue}" -gt 0 ]; then # errore nello script                  DA RIVEDERE
@@ -786,17 +783,26 @@ echo "Verify directory structure ..."
 if [[ ! -s "${HOMEDIR}dockrepo" ]]; then
   mkdir dockrepo/
 fi
+#
 if [[ ! -s "${HOMEDIR}dockrepo/dockimages" ]]; then
   mkdir dockrepo/dockimages
 fi
 if [[ ! -s "${HOMEDIR}dockrepo/dockimages/${AppName}" ]]; then
   mkdir dockrepo/dockimages/${AppName}
 fi
+#
 if [[ ! -s "${HOMEDIR}dockrepo/sysdata" ]]; then
   mkdir dockrepo/sysdata
 fi
 if [[ ! -s "${HOMEDIR}dockrepo/sysdata/${AppName}" ]]; then
   mkdir dockrepo/sysdata/${AppName}
+fi
+#
+if [[ ! -s "${HOMEDIR}dockrepo/sysconfig" ]]; then
+  mkdir dockrepo/sysconfig
+fi
+if [[ ! -s "${HOMEDIR}dockrepo/sysconfig/${AppName}" ]]; then
+  mkdir dockrepo/sysconfig/${AppName}
 fi
 #
 MENUTRAP=0 #-------------- per ora non ci sono errori ...
@@ -916,6 +922,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "###############################"
   echo "          EXPAND phase done."
   echo
+  pause
 fi
 #
 if [[ ${MENUTRAP} -eq 0 ]]; then
@@ -969,6 +976,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "###############################"
   echo "          CONFIG phase done."
   echo
+  pause
 fi
 #
 if [[ ${MENUTRAP} -eq 0 ]]; then
@@ -1017,6 +1025,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "###############################"
   echo "          INIT phase done."
   echo
+  pause
 fi
 ################################################################################
 #######################################################     NGINX-GO  menu   ###

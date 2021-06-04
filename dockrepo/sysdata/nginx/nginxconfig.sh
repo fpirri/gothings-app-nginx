@@ -14,14 +14,17 @@ avanti(){
 #
 pause() {
 #  Domanda 'continue or exit'
-  avanti 'Press any key to continue or ^C to exit ...'
+  avanti 'Press any key to continue or ^C to EXIT ...'
 }
 #
 ##########################################################################
 #
-echo "Non faccio niente!"
+echo "Sono in sviluppo e ora non faccio niente!"
+echo
+echo "per ora ritorno un errore"
 avanti "any key to exit ..."
-exit
+exit 66
+
 
 echo "you have to become root to exec this operation"
 echo
