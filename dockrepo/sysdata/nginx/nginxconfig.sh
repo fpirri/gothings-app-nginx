@@ -23,7 +23,7 @@ echo "Sono in sviluppo e ora non faccio niente!"
 echo
 echo "per ora ritorno un errore"
 avanti "any key to exit ..."
-exit 66
+return 66
 
 
 echo "you have to become root to exec this operation"

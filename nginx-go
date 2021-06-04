@@ -342,8 +342,7 @@ verifyexpand() {
 #  nello stesso dir sono eventualmente presenti i files <appname>expand.sh e <appname>dirs.tar.gz
 #  TUTTE le info necessarie sono nel .json
 #
-  local filejson status filetargz githubgzfile script temp debuglog nvar
-  local type, package, status, filetargz, githubgzfile, script
+  local filejson status filetargz githubgzfile script temp debuglog nvar type package 
   filejson="${HOMEDIR}dockrepo/dockimages/${AppName}/${AppName}expand.json"
   ScriptName="none"
   #
@@ -755,6 +754,7 @@ destroyapp() {
 #
 #
 echo
+echo "===================================================================="
 echo "Executing NGINX-GO"
 echo -e "Gestione della app NGINX Proxy - ${Red} versione in sviluppo ${Std}"
 echo
@@ -768,7 +768,7 @@ echo -n "Dir di lavoro: "
 pwd
 echo
 echo "La logica di verifica delle condizioni iniziali e' ** ANCORA In sviluppo **"
-echo -e "${Red} Verifica NON EFFETTUATA ! ${Std}"
+echo -e "${Red} Verifica condizioni iniziali NON EFFETTUATA ! ${Std}"
 dots_nl 3
 #
 
@@ -877,7 +877,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   DebugMode=1  # START printing vars ...
 #
   FileExpand="${AppName}expand.json"
-  GithubPath="gothings-cloud-apps/master/${AppName}/"
+  GithubPath="gothings-app-${AppName}/master/"
   LocalInstallDir="dockrepo/dockimages/${AppName}/"
 #
 # assicurati che il file di configurazione esista
