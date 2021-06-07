@@ -1,8 +1,20 @@
 #!/bin/bash
 # ref.: https://pentacent.medium.com/nginx-and-lets-encrypt-with-docker-in-less-than-5-minutes-b4b8a60d3a71
 #
+# costanti di personalizzazione
+###############################################################################
+###  da mettere in un file di configurazione                                    DA FARE IN PRODUZIONE
+domains=(pirri.me test.pirri.me)
+ConfigWorkDir="/home/yesfi/dockrepo/sysdata/nginx/"
+# Adding a valid address is strongly recommended
+email="vmaticfp@gothings.org"
+#
+rsa_key_size=4096
+data_path="${ConfigWorkDir}data/certbot"
+staging=0 # Set to 1 if you are testing your setup to avoid hitting request limits
+#
 #  Funzioni utili
-##########################################################################
+###############################################################################
 avanti(){
 # Domanda di continuazione personalizzabile
 # call:    avanti \$1
@@ -19,35 +31,32 @@ pause() {
 #
 ##########################################################################
 #
-echo "Sono in sviluppo e ora non faccio niente!"
+echo "--------------------------------------------------------------"
+echo "SCRIPT: $0"
 echo
-echo "per ora ritorno un errore"
-avanti "any key to exit ..."
-return 66
-
-
-echo "you have to become root to exec this operation"
-echo
-[ "$UID" -eq 0 ] || exec sudo "$0" "$@"
-echo
-echo "now you are:"
-whoami
-
-if [ "$(whoami)" != "root" ]; then
-        echo "Script must be run as user: root"
-        exit 255
+if ! cd "${ConfigWorkDir}" ; then
+    echo "Failed to enter folder ${ConfigWorkDir}"
+    echo "Aborting ..."
+    return 66
 fi
 
+#  ci serve docker-compose:
 if ! [ -x "$(command -v docker-compose)" ]; then
-  echo 'Error: docker-compose is not installed.' >&2
+  echo "Error: docker-compose is not installed." >&2
   exit 1
 fi
-
-domains=(pirri.me test.pirri.me)
-rsa_key_size=4096
-data_path="./data/certbot"
-email="vmaticfp@gothings.org" # Adding a valid address is strongly recommended
-staging=0 # Set to 1 if you're testing your setup to avoid hitting request limits
+#
+echo
+echo "Sono in sviluppo, le mie azioni vanno VERIFICATE"
+echo
+echo -n "You are:  "
+whoami
+echo "You work in the directory:"
+pwd
+echo "Working directory content:"
+ls -la
+echo
+pause
 
 if [ -d "$data_path" ]; then
   read -p "Existing data found for $domains. Continue and replace existing certificate? (y/N) " decision
@@ -57,22 +66,16 @@ if [ -d "$data_path" ]; then
 fi
 
 #
-# ZONA da modificare ...................
+# lettura dei file di configurazione certbot
+#  in produzione:  memorizzare i dati nel posto previsto?                       DA RIVEDERE
 #
-#  dati gia' memorizzati al posto previsto
-#
-  if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
-    echo "### Downloading recommended TLS parameters ..."
-    mkdir -p "$data_path/conf"
-    #  source file:    https://github.com/certbot/certbot/raw/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf
-    curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf > "$data_path/conf/options-ssl-nginx.conf"
-    # source file:     https://github.com/certbot/certbot/raw/master/certbot/certbot/ssl-dhparams.pem
-    curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem > "$data_path/conf/ssl-dhparams.pem"
-    echo
-  fi
-# echo "certbot/conf data already downloaded"
-# echo "--- modified by vmaticfp"
-# .... fin qui!
+if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
+  echo "... Downloading recommended TLS parameters ..."
+  mkdir -p "$data_path/conf"
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf > "$data_path/conf/options-ssl-nginx.conf"
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem > "$data_path/conf/ssl-dhparams.pem"
+  echo
+fi
 
 echo "### Creating dummy certificate for $domains ..."
 path="/etc/letsencrypt/live/$domains"
@@ -95,7 +98,7 @@ docker-compose -f nginx.yml run --rm --entrypoint "\
   rm -Rf /etc/letsencrypt/renewal/$domains.conf" certbot
 echo
 
-echo "### Requesting Let's Encrypt certificate for $domains ..."
+echo "### Requesting certificate for $domains ..."
 #Join $domains to -d args
 domain_args=""
 for domain in "${domains[@]}"; do
@@ -121,5 +124,13 @@ docker-compose -f nginx.yml run --rm --entrypoint "\
     --force-renewal" certbot
 echo
 
-echo "### Reloading nginx ..."
+echo "... Reloading nginx ..."
 docker-compose -f nginx.yml exec nginx nginx -s reload
+echo
+echo "================================================================"
+echo "NGINX proxy is started!"
+echo
+echo "Please verify nginx is OK"
+echo
+pause
+return 0
