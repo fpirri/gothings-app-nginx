@@ -51,35 +51,6 @@ networks:
     #
 
 services:
-  nginx:
-    image: openresty/openresty:1.15.8.2-6-buster
-    container_name: nginx
-    restart: unless-stopped
-    volumes:
-      ###### parte certbot
-      #   configurazione nginx
-      - ~/dockrepo/sysdata/nginx/data/certbot/conf:/etc/letsencrypt
-      #   site home per certbot
-      - ~/dockrepo/sysdata/nginx/data/certbot/www:/var/www/certbot
-      ###### configurazione proxy
-      - ~/dockrepo/sysdata/nginx/nginxdata/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
-      - ~/dockrepo/sysdata/nginx/nginxdata/conf.d:/usr/local/openresty/nginx/conf/conf.d/
-      - ~/dockrepo/sysdata/nginx/nginxdata/sites-enabled:/usr/local/openresty/nginx/conf/sites-enabled/
-      ###### contenuto siti
-      #   sito di test
-      - ~/dockrepo/sysdata/nginx/htdocs/test:/var/www/test
-      #   locazione ausiliaria per nginx lua
-      - ~/dockrepo/sysdata/nginx/htdocs/lua:/var/www/lua
-    networks: 
-      gothingsnet:  
-        ipv4_address: 172.29.196.180
-      servicenet:  
-        ipv4_address: 172.29.195.180
-    ports:
-      - "80:80"
-      - "443:443"
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
-
   certbot:
     image: certbot/certbot
     container_name: certbot

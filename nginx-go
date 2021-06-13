@@ -164,7 +164,7 @@ stopmenu(){
   echo "------------------------------------------------------"
   echo 
   MENUTRAP=66
-  RETLEVEL=66
+  RetValue=66
   return 66
 }
 #
@@ -234,7 +234,7 @@ bugmessage(){
 #
 #  $1 :  ERROR oppure WARNING oppure NOTE
 #  $2 :  codice di errore
-#  stampa piccola storia  <-- vecchio debuglog !!!
+#  stampa piccola storia  <-- vecchio debuglog !!!                              DA RIVEDERE
 #  $3 :  avviso all'utente, come '... il file xxx e' essenziale ...'
 #
   if [ ${DebugMode} -gt 0 ]; then
@@ -558,24 +558,16 @@ verifyconfig() {
         RetValue=$?
 
         ########################################## SIAMO IN SVILUPPO!
-
         echo "Script ${xscript} eseguito"
-        echo "  --> versione sperimentale 2"
+        echo "  --> risultato script: ${RetValue}"
         echo
         pause
-
         ##########################################
 
-        echo "    <-- ${script} return code: ${RetValue}"
         if [ "${RetValue}" -gt 0 ]; then # errore nello script                  DA RIVEDERE
-          if [ "${RetValue}" -eq "666" ]; then # set codice errore
-            ERRCODE=82
-          else
-            ERRCODE=81
-          fi
           debuglog="|${debuglog}| init script return value: ${RetValue} |"
-          bugmessage ERROR ${ERRCODE}"    init script execution error"
-          return ${ERRCODE}
+          bugmessage ERROR 21 "    init script execution error"
+          return 21 #                                               config script error  -->  ERRORE 21
         else
           # install done : update .json file
           echo
@@ -746,6 +738,23 @@ destroyapp() {
 }
 #
 ##########################################################################
+certbot(){
+  #  segnala funzione IN CORSO DI MODIFICA
+  echo 
+  echo
+  echo "------------------------------------------------------------ certbot"
+  echo
+  echo "This function is WORK IN PROGRESS"
+  echo "A new definition & rewriting is on course"
+  echo
+  echo "This function allow HTTPS certificates management by Let's Encrypt"
+  echo
+  echo
+  #exit
+  pause "?"
+}
+#
+##########################################################################
 #
 #
 ################################################################################
@@ -891,6 +900,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "      <-- exists, verifying content ..." 
 #
   verifyexpand
+  RetValue=$?
   DebugMode=0  # STOP printing vars ...
 #
 #----  verifica parte expand
@@ -903,18 +913,11 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
 #
 #  error details in:  .../github-gothings/README.github.gothings
 #
-  RETLEVEL=$?
-  echo "    <-- expand phase returns code ${RETLEVEL}"
-  if [ ${RETLEVEL} -gt 0 ]; then
+  echo "    <-- expand phase returns code ${RetValue}"
+  if [ ${RetValue} -gt 0 ]; then
     debuglog="Expand phase not good"
-    if [ ${RETLEVEL} -lt 50 ]; then
-      echo
-      bugmessage ERROR "${RETLEVEL}" "    expand phase"
-    else
-      echo
-      bugmessage ERROR "${RETLEVEL}" "    expand phase"
-    fi
-    MENUTRAP=${RETLEVEL}
+    bugmessage ERROR "${RetValue}" "    expand phase"
+    MENUTRAP=66
     pause
     exit ${MENUTRAP}
   fi
@@ -932,18 +935,6 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "-------------------------------"
   echo "    CONFIG phase starts ..."
   echo "      verify ${AppName} config file ..."
-#######
-#
-#  Si configura il sito virtuale della app
-#    <-- si copia in 'sites-enabled' il vhost della app:
-#          <AppName>/dockrepo/sysdata/nginx/nginxdata/sites-enabled/<AppName>
-#               e' copiato in:
-#          ~/dockrepo/sysdata/nginx/nginxdata/sites-enabled/
-#
-#  ** altre configurazioni, se necessarie
-#
-#
-#######
 #
   DebugMode=1  # START printing vars ...
 #
@@ -970,7 +961,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   if [ ${MENUTRAP} -gt 0 ]; then
     echo -e "    ${Red}  <-- config phase returns code ${MENUTRAP}  ${Std}"
   else
-    echo -e "    <-- config phase returns code ${MENUTRAP}"
+    echo -e "    <-- config phase returns OK"
   fi
   echo
   echo "###############################"
@@ -982,6 +973,24 @@ fi
 if [[ ${MENUTRAP} -eq 0 ]]; then
 #################################################################################
 #####################################################################  phase INIT
+#
+################################################################################  DA FARE
+################################################### COME INSERIRE LE ALTRE APP ?
+#
+#
+#  Si configura il sito virtuale della app
+#    <-- per ogni app attiva:
+#          PREPARARE un file per il virtual host
+#    <-- si copia in 'sites-enabled' il vhost di ogni app attiva:
+#          <AppName>/dockrepo/sysdata/nginx/nginxdata/sites-enabled/<AppName>
+#               e' copiato in:
+#          ~/dockrepo/sysdata/nginx/nginxdata/sites-enabled/
+#    <-- restart nginx
+#
+#  ** altre configurazioni, se necessarie
+#
+################################################################################
+#
   echo
   echo "-------------------------------"
   echo "    INIT phase starts ..."
@@ -1056,7 +1065,7 @@ show_menus() {
   echo "2. START      ${AppDisplayName} container"
   echo "3. PAUSE      ${AppDisplayName} container"
   echo "4. DESTROY    ${AppDisplayName} container"
-  #echo "5. ---        ??"
+  echo "5. CERTBOT    manage HTTPS certificates"
   #echo "6. ---        ??"
   #echo "7. ---        ??"
   echo "   ..."
@@ -1075,7 +1084,7 @@ read_options(){
     2) startapp;;
 		3) pauseapp;;
 		4) destroyapp;;
-    5) toupdate;;
+    5) certbot;;
     6) toupdate;;
     7) toupdate;;
     8) restartmenu;;
