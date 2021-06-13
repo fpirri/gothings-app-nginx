@@ -6,8 +6,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+#  ELIMINATO: genera errori FAST_FORWARDS
 # archivio della app
-*dirs.tar.gz
+#*dirs.tar.gz
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
