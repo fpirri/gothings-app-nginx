@@ -6,7 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-#  ELIMINATO: genera errori FAST_FORWARDS
+# ELIMINATO: genera errori FAST-FORWARD
 # archivio della app
 #*dirs.tar.gz
 
