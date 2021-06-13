@@ -996,18 +996,19 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "    INIT phase starts ..."
   echo "      verify ${AppName} init config file ..."
   #
-  DebugMode=1  # START printing vars ...
-  #
   FileInit="${AppName}init.json"       #  file di configurazione della fase init
   # assicurati che il file di configurazione esista
   #   <-- GithubPath & LocalInstallDir   come per la fase expand
   getgitfile "${FileInit}" "${GithubPath}" "${LocalInstallDir}"
-  ITEXISTS=$?
   if [[ $ITEXISTS -ne 1 ]]; then
+##  if [[ $ITEXISTS -ne 73 ]]; then                  # debug test
+    echo "ITEXISTS: ${ITEXISTS}"
     echo "      <-- configuration init file DOES NOT exists."
     stopmenu "${FileInit}"  "file ${FileInit} is essential for ${AppName}"
     exit                       # interrompere il menu principale
   fi
+  #
+  DebugMode=1  # START printing vars ...
   echo "      <-- exists, verifying content ..." 
 #
   verifyinit
