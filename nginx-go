@@ -608,10 +608,14 @@ verifyconfig() {
 ################################################################################
 verifyinit() {
 #
-#### versione iniziale : NON FA NIENTE !!!
+#### versione iniziale : in nginx non ha niente da fare
 #
-#  si verifica <appname>config.json per vedere se l'espansione e' da fare,
-#  ovvero se e' gia' fatta o non e' comunque necessaria:
+#  - per altre app dovra' copiare il vhost nel dir site-enabled
+#    <-- in tal caso deve controllare il funzionamento di nginx,
+#        eseguendo un comando simile a:
+#      docker-compose -f nginx.yml exec nginx nginx -t
+#    <-- se OK potra' eseguire il reload di nginx:
+#      docker-compose -f nginx.yml exec nginx nginx -s reload
 #
 #  ritorna 0 se l'operazione non ha prodotto errori
 #          1 se ci sono stati errori ...
@@ -622,16 +626,14 @@ verifyinit() {
 #  ed altre info
 #
   echo
-  echo "Verifica della configurazione di: ${AppDisplayName}"
+  echo "Init app: ${AppDisplayName}"
   echo
-  ScriptName="none"
 #
-  echo "Fase init - versione sperimentale"
-  echo -e "${Red} per ora non si fa NIENTE ${Std}"
+  echo "init - provisional version 0.01"
+  echo -e "${Red} nothing to do ${Std}"
   echo
-  dots 3
+  dots 2
 #
-  ScriptName=${script}
   return 0
 }
 #
@@ -756,6 +758,7 @@ certbot(){
 #
 ##########################################################################
 #
+################################################################################
 #
 ################################################################################
 ####################################################     Manage App NGINX    ###
@@ -765,22 +768,20 @@ certbot(){
 echo
 echo "===================================================================="
 echo "Executing NGINX-GO"
-echo -e "Gestione della app NGINX Proxy - ${Red} versione in sviluppo ${Std}"
+echo -e "Gestione della app NGINX Proxy - ${Red} version iniziale ${Std}"
 echo
 dots_nl 1
-pause
 #
 # Comunica dove siamo
 cd ${WorkDir}
 echo
-echo -n "Dir di lavoro: "
+echo -n "Work dir: "
 pwd
 echo
-echo "La logica di verifica delle condizioni iniziali e' ** ANCORA In sviluppo **"
-echo -e "${Red} Verifica condizioni iniziali NON EFFETTUATA ! ${Std}"
-dots_nl 3
+echo "Verification of droplet status are not performed in this version"
+echo -e "${Red} You should verify droplet status by yourself ! ${Std}"
+dots_nl 2
 #
-
 #
 ################################################################################
 ################################################     NGINX GO - main logic   ###
@@ -816,6 +817,7 @@ fi
 #
 MENUTRAP=0 #-------------- per ora non ci sono errori ...
 #
+dots 1
 if [[ ${MENUTRAP} -eq 0 ]]; then
 #
 #################################################################################
@@ -824,8 +826,8 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
 #  ----  verifica security environment:  si producono i file .env-* in sysdata
 #
 #
-  echo -e "    ${Red}  <-- environment phase NOT IMPLEMENTED ${Std}"
-  dots_nl 3
+  echo -e "    ${Red} ${AppName} does not need environment control  ${Std}"
+  dots_nl 1
 fi
 #
 MENUTRAP=0 #-------------- per ora non ci sono errori ...
@@ -925,7 +927,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "###############################"
   echo "          EXPAND phase done."
   echo
-  pause
+  dots 2
 fi
 #
 if [[ ${MENUTRAP} -eq 0 ]]; then
@@ -967,7 +969,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   echo "###############################"
   echo "          CONFIG phase done."
   echo
-  pause
+  dots 2
 fi
 #
 if [[ ${MENUTRAP} -eq 0 ]]; then
@@ -976,7 +978,9 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
 #
 ################################################################################  DA FARE
 ################################################### COME INSERIRE LE ALTRE APP ?
-#
+#  ===> vedere doc in:
+#  ~/NetBeansProjects/github-gothings/gothings-app-nginx-aux/README.gothings-app-nginx-aux
+#  e altri commenti in fase verifyinit
 #
 #  Si configura il sito virtuale della app
 #    <-- per ogni app attiva:
@@ -1001,7 +1005,7 @@ if [[ ${MENUTRAP} -eq 0 ]]; then
   #   <-- GithubPath & LocalInstallDir   come per la fase expand
   getgitfile "${FileInit}" "${GithubPath}" "${LocalInstallDir}"
   if [[ $ITEXISTS -ne 1 ]]; then
-##  if [[ $ITEXISTS -ne 73 ]]; then                  # debug test
+##  if [[ $ITEXISTS -ne 73 ]]; then                 #### test <-- SOLO per debug
     echo "ITEXISTS: ${ITEXISTS}"
     echo "      <-- configuration init file DOES NOT exists."
     stopmenu "${FileInit}"  "file ${FileInit} is essential for ${AppName}"
