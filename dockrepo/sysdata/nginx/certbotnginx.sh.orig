@@ -102,6 +102,7 @@ pwd
 echo "Working directory content:"
 ls -la
 echo
+pause
 
 echo
 echo "### Dovremmo verificare che nginx sta funzionando ..."
@@ -127,12 +128,26 @@ email_arg="--email $email"
 # Enable staging mode if needed
 #if [ $staging != "0" ]; then staging_arg="--staging"; fi
 
-echo
-echo "... Run certbot"
-docker-compose -f certbot.yml up -d
+docker-compose -f certbot.yml run --rm --entrypoint "\
+  certbot certonly --webroot -w /var/www/certbot \
+    $staging_arg \
+    $email_arg \
+    $domain_args \
+    --rsa-key-size $rsa_key_size \
+    --agree-tos \
+    --force-renewal" certbot
 RetValue=$?
 if [ ${RetValue} -gt 0 ]; then
-  bugmessage ERROR "${RetValue}" "     certbot ERROR"
+  bugmessage ERROR "${RetValue}" "    config.sh: run nginx & certbot"
+  exit 43 #                                               certbot -->  ERRORE 43
+fi
+echo
+
+echo "... Reset certbot"
+docker-compose -f certbot.yml down
+RetValue=$?
+if [ ${RetValue} -gt 0 ]; then
+  bugmessage ERROR "${RetValue}" "     certbot down"
   exit 45 #                                               certbot -->  ERRORE 45
 fi
 echo "certbot now DOWN"

@@ -749,22 +749,48 @@ certbot(){
   echo "... using certbot from Let's Encrypt"
   echo
 
-  read -rsp "Do you like to renew HTTPS certificates [y/N] " -n 1 key
+  echo
+  echo "1. START   certbot renewal process"
+  echo "2. STOP    certbot renewal process"
+  echo "3. DOWN    remove certbot container"
+  echo "   *       any other key to go back"
+  read -rsp "Please choose your option: " -n 1 key
   case "$key" in
-      [yY]) 
+      1) 
         echo
-        echo "ora rinnovo i certificati ..."
+        echo "START certbot renewal process"
         echo
-
-        ${AppDir}certbot${AppName}.sh
-
-#        RetValue=$?
-        RetValue=1
+        docker-compose -f "${HOMEDIR}dockrepo/sysdata/${AppName}/certbot.yml" up -d
+        RetValue=$?
         if [ ${RetValue} -gt 0 ]; then
-          bugmessage ERROR "${RetValue}" "     certbot down"
-          exit 45 #                                       certbot -->  ERRORE 47
+          bugmessage ERROR "${RetValue}" "     certbot START"
+          pause
+          return 47 #                                       certbot -->  ERRORE 47
         fi
-
+        ;;
+      2)
+        echo
+        echo "STOP certbot renewal process"
+        echo
+        docker-compose -f "${HOMEDIR}dockrepo/sysdata/${AppName}/certbot.yml" stop
+        RetValue=$?
+        if [ ${RetValue} -gt 0 ]; then
+          bugmessage ERROR "${RetValue}" "     certbot STOP"
+          pause
+          return 48 #                                       certbot -->  ERRORE 48
+        fi
+        ;;
+      3)
+        echo
+        echo "DOWN certbot renewal process"
+        echo
+        docker-compose -f "${HOMEDIR}dockrepo/sysdata/${AppName}/certbot.yml" down
+        RetValue=$?
+        if [ ${RetValue} -gt 0 ]; then
+          bugmessage ERROR "${RetValue}" "     certbot DOWN"
+          pause
+          return 49 #                                       certbot -->  ERRORE 49
+        fi
         ;;
       *)
         echo
