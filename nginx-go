@@ -741,19 +741,37 @@ destroyapp() {
 #
 ##########################################################################
 certbot(){
-  #  segnala funzione IN CORSO DI MODIFICA
-  echo 
+  #  Gestione certificati per HTTPS con il certbot di Let's Encrypt
+  clear
   echo
   echo "------------------------------------------------------------ certbot"
+  echo "Manage HTTPS certificates"
+  echo "... using certbot from Let's Encrypt"
   echo
-  echo "This function is WORK IN PROGRESS"
-  echo "A new definition & rewriting is on course"
-  echo
-  echo "This function allow HTTPS certificates management by Let's Encrypt"
-  echo
-  echo
-  #exit
-  pause "?"
+
+  read -rsp "Do you like to renew HTTPS certificates [y/N] " -n 1 key
+  case "$key" in
+      [yY]) 
+        echo
+        echo "ora rinnovo i certificati ..."
+        echo
+
+        ${AppDir}certbot${AppName}.sh
+
+#        RetValue=$?
+        RetValue=1
+        if [ ${RetValue} -gt 0 ]; then
+          bugmessage ERROR "${RetValue}" "     certbot down"
+          exit 45 #                                       certbot -->  ERRORE 47
+        fi
+
+        ;;
+      *)
+        echo
+        echo "Back to main menu"
+        dots 1
+        ;;
+  esac
 }
 #
 ##########################################################################
@@ -780,7 +798,8 @@ pwd
 echo
 echo "Verification of droplet status are not performed in this version"
 echo -e "${Red} You should verify droplet status by yourself ! ${Std}"
-dots_nl 2
+echo
+pause
 #
 #
 ################################################################################
