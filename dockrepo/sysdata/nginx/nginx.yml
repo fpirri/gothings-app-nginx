@@ -66,10 +66,12 @@ services:
       - ~/dockrepo/sysdata/nginx/nginxdata/conf.d:/usr/local/openresty/nginx/conf/conf.d/
       - ~/dockrepo/sysdata/nginx/nginxdata/sites-enabled:/usr/local/openresty/nginx/conf/sites-enabled/
       ###### contenuto siti
-      #   sito di test
+      #   sito nginx/test
       - ~/dockrepo/sysdata/nginx/htdocs/test:/var/www/test
-      #   locazione ausiliaria per nginx lua
+      #   locazione ausiliaria per nginx/lua
       - ~/dockrepo/sysdata/nginx/htdocs/lua:/var/www/lua
+      #   'sito' globale per i dati delle app
+      - ~/dockrepo/sysdata/htdocs/:/usr/local/openresty/nginx/html/appdata/
     networks: 
       gothingsnet:  
         ipv4_address: 172.29.196.180
