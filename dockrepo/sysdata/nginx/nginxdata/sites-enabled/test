@@ -55,12 +55,6 @@ server {###  server per un test di base - prot http ############################
       root /var/www/certbot;
   }
 
-  location = /lua { 
-    set $debug_value '|nginx: TEST lua|';
-    content_by_lua_file /var/www/lua/test.lua;
-    server_tokens off;
-  }
-
   location = /favicon.ico { 
     set $debug_value '|nginx: TEST favicon|';
     log_not_found off; access_log off; 

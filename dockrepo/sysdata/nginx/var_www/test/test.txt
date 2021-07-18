@@ -1,0 +1,9 @@
+TEST #5
+***********************************************************
+Hello, nginx user!
+You succesfully read this file.
+
+It means that nginx can access static files in this site.
+***********************************************************
+
+file: test.txt  &nbsp; &nbsp; dir: /var_www/test/

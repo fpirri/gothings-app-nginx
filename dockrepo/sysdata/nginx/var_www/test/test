@@ -1,0 +1,25 @@
+<head>
+  <title>GOTHINGS test</title>
+  <script type="text/javascript">
+    var siteurl=document.URL;
+  </script>
+</head>
+<body>
+  <noscript><bold>Your browser does not support JavaScript!<br>
+    The page below may not display correctly.<br>
+    Please enable javascript in your browser to a correct functionality.<br></bold></noscript><br>
+  TEST #3
+<hr><br>
+  <h2> &nbsp; &nbsp; TEST page with no .html extension</h2>
+   &nbsp; &nbsp; NGINX: This is a test page<br>
+   &nbsp; &nbsp; location:
+  <script type="text/javascript">
+    document.write(siteurl)
+  </script>
+  <br>
+  <br><hr><hr>
+<hr><hr><br><br>
+  To test more pages, please go to &nbsp;<a href="./test.html">home page</a> and select any link ...<br><br>
+<hr><hr>
+<br>file: test  &nbsp; &nbsp; dir: var_www/test/
+</body>
